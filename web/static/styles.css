@@ -113,53 +113,6 @@ h1 {
   height: auto;
 }
 
-.hat-target {
-  position: absolute;
-  border: clamp(2px, 0.5vw, 3px) dashed rgba(255, 255, 255, 0.9);
-  border-radius: clamp(8px, 2vw, 12px);
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 0 0 2px rgba(0, 0, 0, 0.55),
-    inset 0 0 28px rgba(255, 255, 255, 0.12);
-  pointer-events: none;
-  z-index: 2;
-  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  animation: targetPulse 1.8s ease-in-out infinite;
-}
-
-.hat-target.near {
-  border-color: #8dffb1;
-  background: rgba(141, 255, 177, 0.2);
-  box-shadow:
-    0 0 0 3px rgba(141, 255, 177, 0.35),
-    inset 0 0 32px rgba(141, 255, 177, 0.22);
-}
-
-.hat-target-label {
-  position: absolute;
-  left: 50%;
-  bottom: clamp(6px, 1.5vw, 10px);
-  transform: translateX(-50%);
-  padding: clamp(4px, 1vw, 6px) clamp(10px, 2.5vw, 12px);
-  border-radius: 999px;
-  background: #fff;
-  color: #000;
-  font-size: var(--font-small);
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  line-height: 1.2;
-}
-
-@keyframes targetPulse {
-  0%, 100% {
-    opacity: 0.92;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
 .hat-piece {
   position: absolute;
   left: 0;

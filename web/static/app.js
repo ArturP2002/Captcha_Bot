@@ -4,7 +4,6 @@
   const stage = document.getElementById("captcha-stage");
   const stageInner = document.querySelector(".captcha-stage-inner");
   const bgImage = document.getElementById("captcha-bg");
-  const hatTarget = document.getElementById("hat-target");
   const hat = document.getElementById("hat-piece");
   const verifyBtn = document.getElementById("verify-btn");
   const statusEl = document.getElementById("status");
@@ -79,7 +78,6 @@
     const deltaY = Math.abs(hatPosition.y - slot.y);
     const isNear = deltaX <= tolerance * 1.8 && deltaY <= tolerance * 1.8;
 
-    hatTarget.classList.toggle("near", isNear);
     if (isNear && !dragging && !statusEl.classList.contains("error")) {
       statusEl.textContent = messages.near;
       statusEl.className = "status ok";
@@ -96,11 +94,6 @@
 
     displayScale = getScale();
     const slot = captchaConfig.hatSlot;
-
-    hatTarget.style.left = slot.x * displayScale + "px";
-    hatTarget.style.top = slot.y * displayScale + "px";
-    hatTarget.style.width = slot.w * displayScale + "px";
-    hatTarget.style.height = slot.h * displayScale + "px";
 
     hat.style.width = slot.w * displayScale + "px";
     hat.style.height = slot.h * displayScale + "px";
