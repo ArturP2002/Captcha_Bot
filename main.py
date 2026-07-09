@@ -65,7 +65,8 @@ def load_captcha_config() -> dict:
     return json.loads(CAPTCHA_CONFIG_PATH.read_text(encoding="utf-8"))
 
 
-CAPTCHA_CONFIG = load_captcha_config()
+def get_captcha_config() -> dict:
+    return load_captcha_config()
 
 
 def validate_telegram_webapp_init_data(init_data: str, bot_token: str) -> bool:
@@ -164,7 +165,7 @@ async def miniapp_page(_: web.Request) -> web.FileResponse:
 
 
 async def captcha_config(_: web.Request) -> web.Response:
-    return web.json_response(CAPTCHA_CONFIG)
+    return web.json_response(get_captcha_config())
 
 
 async def download_ticket(_: web.Request) -> web.FileResponse:
@@ -194,8 +195,9 @@ async def verify_captcha(request: web.Request) -> web.Response:
         register_attempt(user_id)
         return web.json_response({"ok": False, "reason": "invalid_coordinates"}, status=400)
 
-    slot = CAPTCHA_CONFIG["hatSlot"]
-    tolerance = int(CAPTCHA_CONFIG.get("tolerance", 28))
+    config = get_captcha_config()
+    slot = config["hatSlot"]
+    tolerance = int(config.get("tolerance", 42))
     delta_x = abs(float(hat_x) - slot["x"])
     delta_y = abs(float(hat_y) - slot["y"])
     is_valid = delta_x <= tolerance and delta_y <= tolerance

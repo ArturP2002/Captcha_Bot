@@ -12,12 +12,15 @@
     <img class="bg-logo" src="/static/media/Logo.PNG" alt="Логотип">
 
     <section id="captcha-screen" class="screen">
-      <h1>Проверка</h1>
-      <p class="hint">Перетащите шапку на пустое место на фото, чтобы собрать картинку.</p>
+      <h1>Соберите картинку</h1>
+      <p class="hint">Перетащите шапку в подсвеченную зону «Сюда».</p>
 
       <div id="captcha-stage" class="captcha-stage">
-        <img id="captcha-bg" class="captcha-bg" src="/static/media/Mem_Captcha_base.PNG" alt="Капча">
-        <img id="hat-piece" class="hat-piece" src="/static/media/Mem_Captcha_hat.PNG" alt="Шапка">
+        <img id="captcha-bg" class="captcha-bg" src="/static/media/base.png" alt="Капча">
+        <div id="hat-target" class="hat-target">
+          <span class="hat-target-label">Сюда</span>
+        </div>
+        <img id="hat-piece" class="hat-piece" src="/static/media/hat.png" alt="Шапка">
       </div>
 
       <button id="verify-btn" class="btn" type="button">Проверить</button>

@@ -3,6 +3,7 @@
   const ticketScreen = document.getElementById("ticket-screen");
   const stage = document.getElementById("captcha-stage");
   const bgImage = document.getElementById("captcha-bg");
+  const hatTarget = document.getElementById("hat-target");
   const hat = document.getElementById("hat-piece");
   const verifyBtn = document.getElementById("verify-btn");
   const statusEl = document.getElementById("status");
@@ -25,7 +26,7 @@
 
   const messages = {
     verifying: "Проверяем...",
-    wrong_position: "Неверно. Попробуйте ещё раз.",
+    wrong_position: "Мимо. Попробуйте ещё раз.",
     rate_limited: "Слишком много попыток. Подождите немного.",
     invalid_init_data: "Ошибка авторизации Telegram.",
     invalid_user: "Не удалось определить пользователя.",
@@ -36,6 +37,7 @@
     ticket_sending: "Отправляем билет в чат...",
     ticket_sent: "Готово! Билет отправлен в чат как фото и файл.",
     ticket_failed: "Не удалось отправить билет в чат.",
+    near: "Почти! Можно проверять.",
   };
 
   function clamp(value, min, max) {
@@ -49,8 +51,34 @@
     return stage.clientWidth / bgImage.naturalWidth;
   }
 
-  function applyHatVisualPosition() {
-    hat.style.transform = `translate(${hatPosition.x * displayScale}px, ${hatPosition.y * displayScale}px)`;
+  function applyHatVisualPosition(animate) {
+    const x = hatPosition.x * displayScale;
+    const y = hatPosition.y * displayScale;
+    hat.style.setProperty("--hat-x", x + "px");
+    hat.style.setProperty("--hat-y", y + "px");
+    hat.style.transition = animate ? "transform 0.28s ease" : "none";
+    hat.style.transform = `translate(${x}px, ${y}px)`;
+    updateProximityFeedback();
+  }
+
+  function updateProximityFeedback() {
+    if (!captchaConfig) {
+      return;
+    }
+    const slot = captchaConfig.hatSlot;
+    const tolerance = captchaConfig.tolerance || 42;
+    const deltaX = Math.abs(hatPosition.x - slot.x);
+    const deltaY = Math.abs(hatPosition.y - slot.y);
+    const isNear = deltaX <= tolerance * 1.8 && deltaY <= tolerance * 1.8;
+
+    hatTarget.classList.toggle("near", isNear);
+    if (isNear && !dragging && !statusEl.classList.contains("error")) {
+      statusEl.textContent = messages.near;
+      statusEl.className = "status ok";
+    } else if (!dragging && statusEl.textContent === messages.near) {
+      statusEl.textContent = "";
+      statusEl.className = "status";
+    }
   }
 
   function layoutCaptcha() {
@@ -60,9 +88,15 @@
 
     displayScale = getScale();
     const slot = captchaConfig.hatSlot;
+
+    hatTarget.style.left = slot.x * displayScale + "px";
+    hatTarget.style.top = slot.y * displayScale + "px";
+    hatTarget.style.width = slot.w * displayScale + "px";
+    hatTarget.style.height = slot.h * displayScale + "px";
+
     hat.style.width = slot.w * displayScale + "px";
     hat.style.height = slot.h * displayScale + "px";
-    applyHatVisualPosition();
+    applyHatVisualPosition(false);
   }
 
   function randomHatStart() {
@@ -75,46 +109,63 @@
     const maxY = Math.max(captchaConfig.imageHeight - slot.h, 0);
 
     const zones = [
-      { x: maxX * 0.04, y: maxY * 0.55 },
-      { x: maxX * 0.72, y: maxY * 0.58 },
-      { x: maxX * 0.05, y: maxY * 0.82 },
-      { x: maxX * 0.68, y: maxY * 0.8 },
-      { x: maxX * 0.38, y: maxY * 0.86 },
+      { x: 24, y: maxY * 0.62 },
+      { x: maxX * 0.68, y: maxY * 0.66 },
+      { x: 24, y: maxY * 0.86 },
+      { x: maxX * 0.62, y: maxY * 0.84 },
     ];
 
     let zone = zones[0];
     for (const candidate of zones.sort(() => Math.random() - 0.5)) {
       const farEnough =
-        Math.abs(candidate.x - slot.x) > slot.w * 0.45 ||
-        Math.abs(candidate.y - slot.y) > slot.h * 0.45;
+        Math.abs(candidate.x - slot.x) > slot.w * 0.5 ||
+        Math.abs(candidate.y - slot.y) > slot.h * 0.5;
       if (farEnough) {
         zone = candidate;
         break;
       }
     }
 
-    setHatPositionNatural(zone.x, zone.y);
+    setHatPositionNatural(zone.x, zone.y, false);
     hasInitialPosition = true;
   }
 
-  function setHatPositionNatural(naturalX, naturalY) {
+  function setHatPositionNatural(naturalX, naturalY, animate) {
     const slot = captchaConfig.hatSlot;
     const maxX = Math.max(captchaConfig.imageWidth - slot.w, 0);
     const maxY = Math.max(captchaConfig.imageHeight - slot.h, 0);
 
     hatPosition.x = clamp(naturalX, 0, maxX);
     hatPosition.y = clamp(naturalY, 0, maxY);
-    applyHatVisualPosition();
+    applyHatVisualPosition(animate);
   }
 
   function setHatPositionDisplay(displayX, displayY) {
-    setHatPositionNatural(displayX / displayScale, displayY / displayScale);
+    setHatPositionNatural(displayX / displayScale, displayY / displayScale, false);
+  }
+
+  function shakeHat() {
+    hat.classList.remove("shake");
+    void hat.offsetWidth;
+    hat.classList.add("shake");
+    statusEl.textContent = messages.wrong_position;
+    statusEl.className = "status error";
+  }
+
+  function snapToSlot() {
+    return new Promise((resolve) => {
+      const slot = captchaConfig.hatSlot;
+      setHatPositionNatural(slot.x, slot.y, true);
+      setTimeout(resolve, 300);
+    });
   }
 
   function pointerDown(event) {
     event.preventDefault();
     dragging = true;
     hat.classList.add("dragging");
+    statusEl.textContent = "";
+    statusEl.className = "status";
     const rect = hat.getBoundingClientRect();
     offsetX = event.clientX - rect.left;
     offsetY = event.clientY - rect.top;
@@ -139,7 +190,7 @@
     event.preventDefault();
     dragging = false;
     hat.classList.remove("dragging");
-    applyHatVisualPosition();
+    applyHatVisualPosition(false);
   }
 
   async function loadConfig() {
@@ -174,6 +225,7 @@
 
   async function verifyCaptcha() {
     statusEl.textContent = messages.verifying;
+    statusEl.className = "status";
     verifyBtn.disabled = true;
 
     const body = {
@@ -191,16 +243,19 @@
       const data = await response.json();
 
       if (response.ok && data.ok) {
-        statusEl.textContent = "";
+        statusEl.textContent = "Верно!";
+        statusEl.className = "status ok";
+        await snapToSlot();
         captchaScreen.classList.add("hidden");
         ticketScreen.classList.remove("hidden");
         await deliverTicket();
         return;
       }
 
-      statusEl.textContent = messages[data.reason] || messages.default_error;
+      shakeHat();
     } catch (_error) {
       statusEl.textContent = messages.network_error;
+      statusEl.className = "status error";
     } finally {
       verifyBtn.disabled = false;
     }
@@ -210,11 +265,17 @@
     try {
       await loadConfig();
       await new Promise((resolve) => {
-        if (bgImage.complete) {
+        if (bgImage.complete && hat.complete) {
           resolve();
           return;
         }
-        bgImage.onload = resolve;
+        let loaded = 0;
+        const done = () => {
+          loaded += 1;
+          if (loaded >= 2) resolve();
+        };
+        bgImage.onload = done;
+        hat.onload = done;
       });
       layoutCaptcha();
       randomHatStart();
@@ -224,6 +285,7 @@
       });
     } catch (_error) {
       statusEl.textContent = "Не удалось загрузить капчу.";
+      statusEl.className = "status error";
     }
   }
 
