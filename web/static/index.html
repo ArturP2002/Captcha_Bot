@@ -10,16 +10,18 @@
 </head>
 <body>
   <main class="app">
-    <img class="bg-logo" src="/static/media/Logo.PNG" alt="Логотип">
+    <header class="app-header">
+      <img class="app-logo" src="/static/media/Logo.PNG" alt="Логотип">
+    </header>
 
     <section id="captcha-screen" class="screen">
-      <h1>Соберите картинку</h1>
-      <p class="hint">Перетащите шапку на пустое место на фото.</p>
+      <h1>Только живые</h1>
+      <p class="hint">Пройди капчу - получи билет. Увидимся в левеле!</p>
 
       <div id="captcha-stage" class="captcha-stage">
         <div class="captcha-stage-inner">
           <img id="captcha-bg" class="captcha-bg" src="/static/media/base.png" alt="Капча">
-          <img id="hat-piece" class="hat-piece" src="/static/media/hat.png" alt="Шапка">
+          <img id="hat-piece" class="hat-piece" src="/static/media/hat.png" alt="Кандибобер">
         </div>
       </div>
 
@@ -28,8 +30,8 @@
     </section>
 
     <section id="ticket-screen" class="screen hidden">
-      <h1>Ваш билет</h1>
-      <p id="ticket-status" class="hint">Отправляем билет в чат...</p>
+      <h1>Твой билет</h1>
+      <p class="hint">Сделай скриншот</p>
       <img class="ticket-image" src="/static/media/Ticket.PNG" alt="Билет">
     </section>
   </main>

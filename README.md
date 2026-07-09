@@ -1,16 +1,17 @@
 # Captcha Bot + Telegram Mini App
 
-Простой Telegram-бот с Mini App на домене `https://dktk.fun`.
+Telegram-бот с Mini App на домене `https://dktk.fun`.
 
-Пользователь переходит из поста в канале в бота, открывает Mini App, проходит капчу (перетаскивание красной шапки) и получает билет с возможностью скачать его.
+Пользователь открывает Mini App, проходит капчу (перетаскивание кандибобера) и получает билет прямо в приложении — достаточно сделать скриншот.
 
 ## Функционал
 
-- `/start` — кнопка открытия Mini App (`https://dktk.fun/miniapp`)
+- `/start` — кнопка открытия Mini App
+- `/post_template` — текст и ссылка для поста в канале
 - Mini App из 2 экранов:
-  - капча с drag-and-drop шапкой
-  - билет + кнопка скачивания
-- Логотип в правом верхнем углу на обоих экранах
+  - капча с drag-and-drop
+  - билет на экране
+- Логотип по центру в верхней части экрана
 - Серверная проверка `initData` Telegram WebApp
 - Rate limit на попытки прохождения капчи
 
@@ -24,13 +25,16 @@
 
 ```
 Captcha_Bot/
-├── main.py                 # бот + веб-сервер в одном процессе
+├── main.py
+├── prepare_captcha_config.py
 ├── requirements.txt
-├── .env                    # BOT_TOKEN (не коммитить)
+├── .env
 ├── media/
 │   ├── Logo.PNG
-│   ├── Mem_Captcha.PNG
-│   └── Ticket.PNG
+│   ├── base.png
+│   ├── hat.png
+│   ├── Ticket.PNG
+│   └── captcha_config.json
 └── web/static/
     ├── index.html
     ├── styles.css
@@ -45,7 +49,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Создайте файл `.env` в корне проекта:
+Создайте файл `.env`:
 
 ```env
 BOT_TOKEN=your_telegram_bot_token
@@ -58,67 +62,29 @@ source .venv/bin/activate
 python main.py
 ```
 
-Приложение слушает `0.0.0.0:8080` и одновременно:
-
-- запускает aiogram polling
-- поднимает aiohttp веб-сервер
+Приложение слушает `0.0.0.0:8080` и одновременно запускает aiogram polling и aiohttp веб-сервер.
 
 ## Production (dktk.fun)
-
-Домен зафиксирован в коде: `https://dktk.fun`.
 
 ### Маршруты
 
 | Маршрут | Описание |
 |---------|----------|
 | `GET /miniapp` | Mini App |
+| `GET /api/captcha/config` | Конфиг капчи |
 | `POST /api/captcha/verify` | Проверка капчи |
-| `GET /download/ticket` | Скачивание билета |
 | `GET /static/app/*` | CSS/JS |
 | `GET /static/media/*` | Изображения |
 
-### Reverse proxy (Nginx)
-
-Пример проксирования на локальный порт `8080`:
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name dktk.fun;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-### systemd (пример)
-
-```ini
-[Unit]
-Description=Captcha Bot
-After=network.target
-
-[Service]
-User=www-data
-WorkingDirectory=/path/to/Captcha_Bot
-EnvironmentFile=/path/to/Captcha_Bot/.env
-ExecStart=/path/to/Captcha_Bot/.venv/bin/python main.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-## Настройка Telegram
+### Настройка Telegram
 
 1. Создайте бота через [@BotFather](https://t.me/BotFather).
-2. В BotFather укажите Web App URL: `https://dktk.fun/miniapp`.
-3. Запустите бота на сервере.
+2. Укажите Web App URL: `https://dktk.fun/miniapp`.
+3. Для прямого входа в Mini App используйте ссылку:
+
+```
+https://t.me/<bot_username>?startapp=from_channel
+```
 
 ### Пост в канале
 
@@ -128,25 +94,13 @@ WantedBy=multi-user.target
 /post_template
 ```
 
-Бот вернёт текст для поста и deep-link вида:
-
-```
-https://t.me/<bot_username>?start=from_channel
-```
-
-В посте канала добавьте кнопку-ссылку на этого бота.
-
 ## Капча
 
-Целевая позиция шапки задаётся в `main.py`:
+Координаты слота задаются в `media/captcha_config.json`. После замены `base.png` / `hat.png` пересоберите конфиг:
 
-```python
-CAPTCHA_TARGET_X = 250
-CAPTCHA_TARGET_Y = 170
-CAPTCHA_TOLERANCE = 20
+```bash
+python prepare_captcha_config.py
 ```
-
-При необходимости подстройте координаты под изображение `Mem_Captcha.PNG`.
 
 Лимит попыток: 8 за 5 минут на пользователя.
 
@@ -159,8 +113,8 @@ CAPTCHA_TOLERANCE = 20
 ```json
 {
   "initData": "<telegram_webapp_init_data>",
-  "hatX": 250,
-  "hatY": 170
+  "hatX": 586,
+  "hatY": 0
 }
 ```
 
@@ -170,10 +124,4 @@ CAPTCHA_TOLERANCE = 20
 { "ok": true }
 ```
 
-Ответ при ошибке:
-
-```json
-{ "ok": false, "reason": "wrong_position" }
-```
-
-Возможные `reason`: `invalid_init_data`, `invalid_user`, `invalid_coordinates`, `wrong_position`, `rate_limited`.
+Возможные `reason` при ошибке: `invalid_init_data`, `invalid_user`, `invalid_coordinates`, `wrong_position`, `rate_limited`.

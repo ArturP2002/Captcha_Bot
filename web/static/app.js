@@ -1,13 +1,11 @@
 (function () {
   const captchaScreen = document.getElementById("captcha-screen");
   const ticketScreen = document.getElementById("ticket-screen");
-  const stage = document.getElementById("captcha-stage");
   const stageInner = document.querySelector(".captcha-stage-inner");
   const bgImage = document.getElementById("captcha-bg");
   const hat = document.getElementById("hat-piece");
   const verifyBtn = document.getElementById("verify-btn");
   const statusEl = document.getElementById("status");
-  const ticketStatusEl = document.getElementById("ticket-status");
 
   const tg = window.Telegram ? window.Telegram.WebApp : null;
   if (tg) {
@@ -34,12 +32,7 @@
     invalid_init_data: "Ошибка авторизации Telegram.",
     invalid_user: "Не удалось определить пользователя.",
     invalid_coordinates: "Некорректные координаты.",
-    captcha_required: "Сначала пройдите капчу.",
-    default_error: "Не удалось пройти проверку.",
     network_error: "Ошибка сети. Попробуйте снова.",
-    ticket_sending: "Отправляем билет в чат...",
-    ticket_sent: "Готово! Билет отправлен в чат как фото и файл.",
-    ticket_failed: "Не удалось отправить билет в чат.",
     near: "Почти! Можно проверять.",
   };
 
@@ -225,26 +218,9 @@
     }
   }
 
-  async function deliverTicket() {
-    ticketStatusEl.textContent = messages.ticket_sending;
-
-    try {
-      const response = await fetch("/api/ticket/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initData: tg ? tg.initData : "" }),
-      });
-      const data = await response.json();
-
-      if (response.ok && data.ok) {
-        ticketStatusEl.textContent = messages.ticket_sent;
-        return;
-      }
-
-      ticketStatusEl.textContent = messages[data.reason] || messages.ticket_failed;
-    } catch (_error) {
-      ticketStatusEl.textContent = messages.ticket_failed;
-    }
+  function showTicketScreen() {
+    captchaScreen.classList.add("hidden");
+    ticketScreen.classList.remove("hidden");
   }
 
   async function verifyCaptcha() {
@@ -270,9 +246,7 @@
         statusEl.textContent = "Верно!";
         statusEl.className = "status ok";
         await snapToSlot();
-        captchaScreen.classList.add("hidden");
-        ticketScreen.classList.remove("hidden");
-        await deliverTicket();
+        showTicketScreen();
         return;
       }
 
