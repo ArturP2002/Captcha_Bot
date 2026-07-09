@@ -2,7 +2,9 @@
   const captchaScreen = document.getElementById("captcha-screen");
   const ticketScreen = document.getElementById("ticket-screen");
   const stage = document.getElementById("captcha-stage");
-  const hat = document.getElementById("hat");
+  const bgImage = document.getElementById("captcha-bg");
+  const hatSlot = document.getElementById("hat-slot");
+  const hat = document.getElementById("hat-piece");
   const verifyBtn = document.getElementById("verify-btn");
   const statusEl = document.getElementById("status");
 
@@ -12,22 +14,87 @@
     tg.expand();
   }
 
-  const hatPosition = { x: 24, y: 24 };
+  const hatPosition = { x: 0, y: 0 }; // natural image coordinates
   let dragging = false;
   let offsetX = 0;
   let offsetY = 0;
+  let captchaConfig = null;
+  let displayScale = 1;
+
+  const messages = {
+    verifying: "Проверяем...",
+    wrong_position: "Неверно. Попробуйте ещё раз.",
+    rate_limited: "Слишком много попыток. Подождите немного.",
+    invalid_init_data: "Ошибка авторизации Telegram.",
+    invalid_user: "Не удалось определить пользователя.",
+    invalid_coordinates: "Некорректные координаты.",
+    default_error: "Не удалось пройти проверку.",
+    network_error: "Ошибка сети. Попробуйте снова.",
+  };
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   }
 
-  function setHatPosition(nextX, nextY) {
-    const maxX = stage.clientWidth - hat.clientWidth;
-    const maxY = stage.clientHeight - hat.clientHeight;
-    hatPosition.x = clamp(nextX, 0, Math.max(maxX, 0));
-    hatPosition.y = clamp(nextY, 0, Math.max(maxY, 0));
-    hat.style.left = hatPosition.x + "px";
-    hat.style.top = hatPosition.y + "px";
+  function getScale() {
+    if (!bgImage.naturalWidth) {
+      return 1;
+    }
+    return stage.clientWidth / bgImage.naturalWidth;
+  }
+
+  function layoutCaptcha() {
+    if (!captchaConfig) {
+      return;
+    }
+
+    displayScale = getScale();
+    const slot = captchaConfig.hatSlot;
+
+    hatSlot.style.left = slot.x * displayScale + "px";
+    hatSlot.style.top = slot.y * displayScale + "px";
+    hatSlot.style.width = slot.w * displayScale + "px";
+    hatSlot.style.height = slot.h * displayScale + "px";
+
+    hat.style.width = slot.w * displayScale + "px";
+    hat.style.height = slot.h * displayScale + "px";
+    setHatPositionNatural(hatPosition.x, hatPosition.y);
+  }
+
+  function randomHatStart() {
+    if (!captchaConfig) {
+      return;
+    }
+
+    const slot = captchaConfig.hatSlot;
+    const maxX = Math.max(captchaConfig.imageWidth - slot.w, 0);
+    const maxY = Math.max(captchaConfig.imageHeight - slot.h, 0);
+
+    const zones = [
+      { x: maxX * 0.05, y: maxY * 0.05 },
+      { x: maxX * 0.7, y: maxY * 0.05 },
+      { x: maxX * 0.05, y: maxY * 0.75 },
+      { x: maxX * 0.65, y: maxY * 0.7 },
+      { x: maxX * 0.35, y: maxY * 0.8 },
+    ];
+
+    const zone = zones[Math.floor(Math.random() * zones.length)];
+    setHatPositionNatural(zone.x, zone.y);
+  }
+
+  function setHatPositionNatural(naturalX, naturalY) {
+    const slot = captchaConfig.hatSlot;
+    const maxX = Math.max(captchaConfig.imageWidth - slot.w, 0);
+    const maxY = Math.max(captchaConfig.imageHeight - slot.h, 0);
+
+    hatPosition.x = clamp(naturalX, 0, maxX);
+    hatPosition.y = clamp(naturalY, 0, maxY);
+    hat.style.left = hatPosition.x * displayScale + "px";
+    hat.style.top = hatPosition.y * displayScale + "px";
+  }
+
+  function setHatPositionDisplay(displayX, displayY) {
+    setHatPositionNatural(displayX / displayScale, displayY / displayScale);
   }
 
   function pointerDown(event) {
@@ -40,11 +107,13 @@
   }
 
   function pointerMove(event) {
-    if (!dragging) return;
+    if (!dragging) {
+      return;
+    }
     const stageRect = stage.getBoundingClientRect();
     const x = event.clientX - stageRect.left - offsetX;
     const y = event.clientY - stageRect.top - offsetY;
-    setHatPosition(x, y);
+    setHatPositionDisplay(x, y);
   }
 
   function pointerUp() {
@@ -52,18 +121,25 @@
     hat.classList.remove("dragging");
   }
 
-  hat.addEventListener("pointerdown", pointerDown);
-  window.addEventListener("pointermove", pointerMove);
-  window.addEventListener("pointerup", pointerUp);
+  async function loadConfig() {
+    const response = await fetch("/api/captcha/config");
+    if (!response.ok) {
+      throw new Error("config");
+    }
+    captchaConfig = await response.json();
+  }
 
   async function verifyCaptcha() {
-    statusEl.textContent = "Verifying...";
+    statusEl.textContent = messages.verifying;
     verifyBtn.disabled = true;
+
+    const naturalX = Math.round(hatPosition.x);
+    const naturalY = Math.round(hatPosition.y);
 
     const body = {
       initData: tg ? tg.initData : "",
-      hatX: Math.round(hatPosition.x + hat.clientWidth / 2),
-      hatY: Math.round(hatPosition.y + hat.clientHeight / 2),
+      hatX: naturalX,
+      hatY: naturalY,
     };
 
     try {
@@ -81,19 +157,35 @@
         return;
       }
 
-      if (data.reason === "wrong_position") {
-        statusEl.textContent = "Wrong position, try again.";
-      } else if (data.reason === "rate_limited") {
-        statusEl.textContent = "Too many attempts, try later.";
-      } else {
-        statusEl.textContent = "Validation failed.";
-      }
+      statusEl.textContent = messages[data.reason] || messages.default_error;
     } catch (_error) {
-      statusEl.textContent = "Network error, try again.";
+      statusEl.textContent = messages.network_error;
     } finally {
       verifyBtn.disabled = false;
     }
   }
 
+  async function init() {
+    try {
+      await loadConfig();
+      await new Promise((resolve) => {
+        if (bgImage.complete) {
+          resolve();
+          return;
+        }
+        bgImage.onload = resolve;
+      });
+      layoutCaptcha();
+      randomHatStart();
+      window.addEventListener("resize", layoutCaptcha);
+    } catch (_error) {
+      statusEl.textContent = "Не удалось загрузить капчу.";
+    }
+  }
+
+  hat.addEventListener("pointerdown", pointerDown);
+  window.addEventListener("pointermove", pointerMove);
+  window.addEventListener("pointerup", pointerUp);
   verifyBtn.addEventListener("click", verifyCaptcha);
+  init();
 })();

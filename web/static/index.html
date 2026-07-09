@@ -1,33 +1,35 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Captcha Ticket Mini App</title>
+  <title>Капча и билет</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="/static/app/styles.css">
 </head>
 <body>
   <main class="app">
-    <img class="top-logo" src="/static/media/Logo.PNG" alt="Logo">
+    <img class="bg-logo" src="/static/media/Logo.PNG" alt="Логотип">
 
     <section id="captcha-screen" class="screen">
-      <h1>Captcha Check</h1>
-      <p class="hint">Move the red hat to the correct place, then press Verify.</p>
+      <h1>Проверка</h1>
+      <p class="hint">Перетащите шапку на пустое место на фото, чтобы собрать картинку.</p>
 
       <div id="captcha-stage" class="captcha-stage">
-        <img id="captcha-image" src="/static/media/Mem_Captcha.PNG" alt="Captcha">
-        <div id="hat" class="hat" aria-label="Draggable red hat"></div>
+        <img id="captcha-bg" class="captcha-bg" src="/static/media/Mem_Captcha_base.PNG" alt="Капча">
+        <div id="hat-slot" class="hat-slot" aria-hidden="true"></div>
+        <img id="hat-piece" class="hat-piece" src="/static/media/Mem_Captcha_hat.PNG" alt="Шапка">
       </div>
 
-      <button id="verify-btn" class="btn" type="button">Verify</button>
+      <button id="verify-btn" class="btn" type="button">Проверить</button>
       <p id="status" class="status"></p>
     </section>
 
     <section id="ticket-screen" class="screen hidden">
-      <h1>Your Ticket</h1>
-      <p class="hint">Captcha passed successfully.</p>
-      <img class="ticket-image" src="/static/media/Ticket.PNG" alt="Ticket">
-      <a class="btn" href="/download/ticket" download="Ticket.PNG">Download Ticket</a>
+      <h1>Ваш билет</h1>
+      <p class="hint">Капча пройдена. Заберите билет ниже.</p>
+      <img class="ticket-image" src="/static/media/Ticket.PNG" alt="Билет">
+      <a class="btn" href="/download/ticket" download="Ticket.PNG">Скачать билет</a>
     </section>
   </main>
 

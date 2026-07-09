@@ -24,9 +24,7 @@ APP_PORT = 8080
 APP_DOMAIN = "https://dktk.fun"
 MINI_APP_URL = f"{APP_DOMAIN}/miniapp"
 
-CAPTCHA_TARGET_X = 250
-CAPTCHA_TARGET_Y = 170
-CAPTCHA_TOLERANCE = 20
+CAPTCHA_CONFIG_PATH = MEDIA_DIR / "captcha_config.json"
 MAX_ATTEMPTS = 8
 ATTEMPT_WINDOW_SECONDS = 300
 
@@ -57,6 +55,15 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", ENV_VALUES.get("BOT_TOKEN", ""))
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is not set. Add BOT_TOKEN to .env file.")
+
+
+def load_captcha_config() -> dict:
+    if not CAPTCHA_CONFIG_PATH.exists():
+        raise RuntimeError(f"Captcha config not found: {CAPTCHA_CONFIG_PATH}")
+    return json.loads(CAPTCHA_CONFIG_PATH.read_text(encoding="utf-8"))
+
+
+CAPTCHA_CONFIG = load_captcha_config()
 
 
 def validate_telegram_webapp_init_data(init_data: str, bot_token: str) -> bool:
@@ -111,28 +118,40 @@ async def start_handler(message: Message) -> None:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="Open Mini App",
+                    text="🎫 Открыть Mini App",
                     web_app=WebAppInfo(url=MINI_APP_URL),
                 )
             ]
         ]
     )
     await message.answer(
-        "Tap the button below to open the captcha mini app.",
+        "<b>🎟 Добро пожаловать!</b>\n\n"
+        "Пройдите короткую капчу в Mini App и получите билет.\n"
+        "Нажмите кнопку ниже, чтобы начать 👇",
         reply_markup=keyboard,
+        parse_mode="HTML",
     )
 
 
 async def post_template_handler(message: Message) -> None:
+    bot_username = (await message.bot.get_me()).username
     text = (
-        "Нажми кнопку и забери билет после капчи.\n"
-        f"Ссылка на бота: https://t.me/{(await message.bot.get_me()).username}?start=from_channel"
+        "<b>🎫 Заберите свой билет</b>\n\n"
+        "1. Перейдите в бота\n"
+        "2. Откройте Mini App\n"
+        "3. Соберите картинку в капче\n"
+        "4. Скачайте билет\n\n"
+        f"👉 <a href=\"https://t.me/{bot_username}?start=from_channel\">Открыть бота</a>"
     )
-    await message.answer(text)
+    await message.answer(text, parse_mode="HTML", disable_web_page_preview=True)
 
 
 async def miniapp_page(_: web.Request) -> web.FileResponse:
     return web.FileResponse(WEB_STATIC_DIR / "index.html")
+
+
+async def captcha_config(_: web.Request) -> web.Response:
+    return web.json_response(CAPTCHA_CONFIG)
 
 
 async def download_ticket(_: web.Request) -> web.FileResponse:
@@ -162,9 +181,11 @@ async def verify_captcha(request: web.Request) -> web.Response:
         register_attempt(user_id)
         return web.json_response({"ok": False, "reason": "invalid_coordinates"}, status=400)
 
-    delta_x = abs(float(hat_x) - CAPTCHA_TARGET_X)
-    delta_y = abs(float(hat_y) - CAPTCHA_TARGET_Y)
-    is_valid = delta_x <= CAPTCHA_TOLERANCE and delta_y <= CAPTCHA_TOLERANCE
+    slot = CAPTCHA_CONFIG["hatSlot"]
+    tolerance = int(CAPTCHA_CONFIG.get("tolerance", 28))
+    delta_x = abs(float(hat_x) - slot["x"])
+    delta_y = abs(float(hat_y) - slot["y"])
+    is_valid = delta_x <= tolerance and delta_y <= tolerance
 
     register_attempt(user_id)
     if not is_valid:
@@ -178,6 +199,7 @@ def create_web_app() -> web.Application:
     app.add_routes(
         [
             web.get("/miniapp", miniapp_page),
+            web.get("/api/captcha/config", captcha_config),
             web.post("/api/captcha/verify", verify_captcha),
             web.get("/download/ticket", download_ticket),
         ]
@@ -192,7 +214,7 @@ async def main() -> None:
 
     def request_stop() -> None:
         if not stop_event.is_set():
-            logger.info("Shutdown requested...")
+            logger.info("Получен сигнал остановки...")
             stop_event.set()
 
     loop = asyncio.get_running_loop()
@@ -204,8 +226,8 @@ async def main() -> None:
     await runner.setup()
     site = web.TCPSite(runner, host=APP_HOST, port=APP_PORT)
     await site.start()
-    logger.info("Web server started on http://%s:%s", APP_HOST, APP_PORT)
-    logger.info("Mini App URL: %s", MINI_APP_URL)
+    logger.info("Веб-сервер запущен: http://%s:%s", APP_HOST, APP_PORT)
+    logger.info("Mini App: %s", MINI_APP_URL)
 
     bot = Bot(BOT_TOKEN)
     dp = Dispatcher()
@@ -214,11 +236,11 @@ async def main() -> None:
 
     polling_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
     me = await bot.get_me()
-    logger.info("Bot polling started: @%s", me.username)
+    logger.info("Бот запущен: @%s", me.username)
 
     await stop_event.wait()
 
-    logger.info("Stopping services...")
+    logger.info("Останавливаем сервисы...")
     polling_task.cancel()
     try:
         await polling_task
@@ -227,7 +249,7 @@ async def main() -> None:
 
     await runner.cleanup()
     await bot.session.close()
-    logger.info("Stopped cleanly")
+    logger.info("Остановка завершена")
 
 
 if __name__ == "__main__":
