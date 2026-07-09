@@ -2,7 +2,9 @@ import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import os
+import signal
 import time
 from pathlib import Path
 from urllib.parse import parse_qsl
@@ -29,6 +31,12 @@ MAX_ATTEMPTS = 8
 ATTEMPT_WINDOW_SECONDS = 300
 
 ATTEMPTS_BY_USER: dict[int, list[float]] = {}
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 def load_env_file(path: Path) -> dict[str, str]:
@@ -179,27 +187,51 @@ def create_web_app() -> web.Application:
     return app
 
 
-async def run_web_server() -> None:
+async def main() -> None:
+    stop_event = asyncio.Event()
+
+    def request_stop() -> None:
+        if not stop_event.is_set():
+            logger.info("Shutdown requested...")
+            stop_event.set()
+
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, request_stop)
+
     app = create_web_app()
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host=APP_HOST, port=APP_PORT)
     await site.start()
-    while True:
-        await asyncio.sleep(3600)
+    logger.info("Web server started on http://%s:%s", APP_HOST, APP_PORT)
+    logger.info("Mini App URL: %s", MINI_APP_URL)
 
-
-async def run_bot() -> None:
     bot = Bot(BOT_TOKEN)
     dp = Dispatcher()
     dp.message.register(start_handler, CommandStart())
     dp.message.register(post_template_handler, Command("post_template"), F.chat.type == "private")
-    await dp.start_polling(bot)
 
+    polling_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
+    me = await bot.get_me()
+    logger.info("Bot polling started: @%s", me.username)
 
-async def main() -> None:
-    await asyncio.gather(run_web_server(), run_bot())
+    await stop_event.wait()
+
+    logger.info("Stopping services...")
+    polling_task.cancel()
+    try:
+        await polling_task
+    except asyncio.CancelledError:
+        pass
+
+    await runner.cleanup()
+    await bot.session.close()
+    logger.info("Stopped cleanly")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
