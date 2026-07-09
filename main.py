@@ -23,6 +23,11 @@ APP_HOST = "0.0.0.0"
 APP_PORT = 8080
 APP_DOMAIN = "https://dktk.fun"
 MINI_APP_URL = f"{APP_DOMAIN}/miniapp"
+APP_ASSET_VERSION = "2"
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache",
+}
 
 CAPTCHA_CONFIG_PATH = MEDIA_DIR / "captcha_config.json"
 MAX_ATTEMPTS = 8
@@ -141,7 +146,9 @@ async def post_template_handler(message: Message) -> None:
 
 
 async def miniapp_page(_: web.Request) -> web.FileResponse:
-    return web.FileResponse(WEB_STATIC_DIR / "index.html")
+    response = web.FileResponse(WEB_STATIC_DIR / "index.html")
+    response.headers.update(NO_CACHE_HEADERS)
+    return response
 
 
 async def captcha_config(_: web.Request) -> web.Response:
@@ -182,8 +189,16 @@ async def verify_captcha(request: web.Request) -> web.Response:
     return web.json_response({"ok": True})
 
 
+@web.middleware
+async def no_cache_middleware(request: web.Request, handler):
+    response = await handler(request)
+    if request.path.startswith(("/miniapp", "/static/app/")):
+        response.headers.update(NO_CACHE_HEADERS)
+    return response
+
+
 def create_web_app() -> web.Application:
-    app = web.Application()
+    app = web.Application(middlewares=[no_cache_middleware])
     app.add_routes(
         [
             web.get("/miniapp", miniapp_page),
