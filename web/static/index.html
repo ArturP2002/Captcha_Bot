@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
   <title>Капча и билет</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="/static/app/styles.css">
@@ -16,11 +17,13 @@
       <p class="hint">Перетащите шапку в подсвеченную зону «Сюда».</p>
 
       <div id="captcha-stage" class="captcha-stage">
-        <img id="captcha-bg" class="captcha-bg" src="/static/media/base.png" alt="Капча">
-        <div id="hat-target" class="hat-target">
-          <span class="hat-target-label">Сюда</span>
+        <div class="captcha-stage-inner">
+          <img id="captcha-bg" class="captcha-bg" src="/static/media/base.png" alt="Капча">
+          <div id="hat-target" class="hat-target">
+            <span class="hat-target-label">Сюда</span>
+          </div>
+          <img id="hat-piece" class="hat-piece" src="/static/media/hat.png" alt="Шапка">
         </div>
-        <img id="hat-piece" class="hat-piece" src="/static/media/hat.png" alt="Шапка">
       </div>
 
       <button id="verify-btn" class="btn" type="button">Проверить</button>

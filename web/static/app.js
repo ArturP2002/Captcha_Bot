@@ -2,6 +2,7 @@
   const captchaScreen = document.getElementById("captcha-screen");
   const ticketScreen = document.getElementById("ticket-screen");
   const stage = document.getElementById("captcha-stage");
+  const stageInner = document.querySelector(".captcha-stage-inner");
   const bgImage = document.getElementById("captcha-bg");
   const hatTarget = document.getElementById("hat-target");
   const hat = document.getElementById("hat-piece");
@@ -13,6 +14,9 @@
   if (tg) {
     tg.ready();
     tg.expand();
+    if (typeof tg.disableVerticalSwipes === "function") {
+      tg.disableVerticalSwipes();
+    }
   }
 
   const hatPosition = { x: 0, y: 0 };
@@ -48,7 +52,11 @@
     if (!bgImage.naturalWidth) {
       return 1;
     }
-    return stage.clientWidth / bgImage.naturalWidth;
+    const renderedWidth = bgImage.getBoundingClientRect().width;
+    if (!renderedWidth) {
+      return 1;
+    }
+    return renderedWidth / bgImage.naturalWidth;
   }
 
   function applyHatVisualPosition(animate) {
@@ -177,7 +185,7 @@
       return;
     }
     event.preventDefault();
-    const stageRect = stage.getBoundingClientRect();
+    const stageRect = stageInner.getBoundingClientRect();
     const x = event.clientX - stageRect.left - offsetX;
     const y = event.clientY - stageRect.top - offsetY;
     setHatPositionDisplay(x, y);
@@ -199,6 +207,29 @@
       throw new Error("config");
     }
     captchaConfig = await response.json();
+  }
+
+  function bindResizeHandlers() {
+    const relayout = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(layoutCaptcha, 80);
+    };
+
+    window.addEventListener("resize", relayout);
+    window.addEventListener("orientationchange", relayout);
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", relayout);
+    }
+
+    if (tg && typeof tg.onEvent === "function") {
+      tg.onEvent("viewportChanged", relayout);
+    }
+
+    if (typeof ResizeObserver !== "undefined" && stageInner) {
+      const observer = new ResizeObserver(relayout);
+      observer.observe(stageInner);
+    }
   }
 
   async function deliverTicket() {
@@ -279,10 +310,7 @@
       });
       layoutCaptcha();
       randomHatStart();
-      window.addEventListener("resize", () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(layoutCaptcha, 120);
-      });
+      bindResizeHandlers();
     } catch (_error) {
       statusEl.textContent = "Не удалось загрузить капчу.";
       statusEl.className = "status error";
@@ -293,7 +321,7 @@
   hat.addEventListener("pointermove", pointerMove);
   hat.addEventListener("pointerup", pointerUp);
   hat.addEventListener("pointercancel", pointerUp);
-  stage.addEventListener("pointermove", pointerMove);
+  stageInner.addEventListener("pointermove", pointerMove);
   verifyBtn.addEventListener("click", verifyCaptcha);
   init();
 })();
