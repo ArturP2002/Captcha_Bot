@@ -6,6 +6,7 @@
   const hat = document.getElementById("hat-piece");
   const verifyBtn = document.getElementById("verify-btn");
   const statusEl = document.getElementById("status");
+  const ticketStatusEl = document.getElementById("ticket-status");
 
   const tg = window.Telegram ? window.Telegram.WebApp : null;
   if (tg) {
@@ -13,12 +14,14 @@
     tg.expand();
   }
 
-  const hatPosition = { x: 0, y: 0 }; // natural image coordinates
+  const hatPosition = { x: 0, y: 0 };
   let dragging = false;
   let offsetX = 0;
   let offsetY = 0;
   let captchaConfig = null;
   let displayScale = 1;
+  let hasInitialPosition = false;
+  let resizeTimer = null;
 
   const messages = {
     verifying: "Проверяем...",
@@ -27,8 +30,12 @@
     invalid_init_data: "Ошибка авторизации Telegram.",
     invalid_user: "Не удалось определить пользователя.",
     invalid_coordinates: "Некорректные координаты.",
+    captcha_required: "Сначала пройдите капчу.",
     default_error: "Не удалось пройти проверку.",
     network_error: "Ошибка сети. Попробуйте снова.",
+    ticket_sending: "Отправляем билет в чат...",
+    ticket_sent: "Готово! Билет отправлен в чат как фото и файл.",
+    ticket_failed: "Не удалось отправить билет в чат.",
   };
 
   function clamp(value, min, max) {
@@ -42,6 +49,10 @@
     return stage.clientWidth / bgImage.naturalWidth;
   }
 
+  function applyHatVisualPosition() {
+    hat.style.transform = `translate(${hatPosition.x * displayScale}px, ${hatPosition.y * displayScale}px)`;
+  }
+
   function layoutCaptcha() {
     if (!captchaConfig) {
       return;
@@ -49,14 +60,13 @@
 
     displayScale = getScale();
     const slot = captchaConfig.hatSlot;
-
     hat.style.width = slot.w * displayScale + "px";
     hat.style.height = slot.h * displayScale + "px";
-    setHatPositionNatural(hatPosition.x, hatPosition.y);
+    applyHatVisualPosition();
   }
 
   function randomHatStart() {
-    if (!captchaConfig) {
+    if (!captchaConfig || hasInitialPosition) {
       return;
     }
 
@@ -84,6 +94,7 @@
     }
 
     setHatPositionNatural(zone.x, zone.y);
+    hasInitialPosition = true;
   }
 
   function setHatPositionNatural(naturalX, naturalY) {
@@ -93,8 +104,7 @@
 
     hatPosition.x = clamp(naturalX, 0, maxX);
     hatPosition.y = clamp(naturalY, 0, maxY);
-    hat.style.left = hatPosition.x * displayScale + "px";
-    hat.style.top = hatPosition.y * displayScale + "px";
+    applyHatVisualPosition();
   }
 
   function setHatPositionDisplay(displayX, displayY) {
@@ -102,6 +112,7 @@
   }
 
   function pointerDown(event) {
+    event.preventDefault();
     dragging = true;
     hat.classList.add("dragging");
     const rect = hat.getBoundingClientRect();
@@ -114,15 +125,21 @@
     if (!dragging) {
       return;
     }
+    event.preventDefault();
     const stageRect = stage.getBoundingClientRect();
     const x = event.clientX - stageRect.left - offsetX;
     const y = event.clientY - stageRect.top - offsetY;
     setHatPositionDisplay(x, y);
   }
 
-  function pointerUp() {
+  function pointerUp(event) {
+    if (!dragging) {
+      return;
+    }
+    event.preventDefault();
     dragging = false;
     hat.classList.remove("dragging");
+    applyHatVisualPosition();
   }
 
   async function loadConfig() {
@@ -133,17 +150,36 @@
     captchaConfig = await response.json();
   }
 
+  async function deliverTicket() {
+    ticketStatusEl.textContent = messages.ticket_sending;
+
+    try {
+      const response = await fetch("/api/ticket/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData: tg ? tg.initData : "" }),
+      });
+      const data = await response.json();
+
+      if (response.ok && data.ok) {
+        ticketStatusEl.textContent = messages.ticket_sent;
+        return;
+      }
+
+      ticketStatusEl.textContent = messages[data.reason] || messages.ticket_failed;
+    } catch (_error) {
+      ticketStatusEl.textContent = messages.ticket_failed;
+    }
+  }
+
   async function verifyCaptcha() {
     statusEl.textContent = messages.verifying;
     verifyBtn.disabled = true;
 
-    const naturalX = Math.round(hatPosition.x);
-    const naturalY = Math.round(hatPosition.y);
-
     const body = {
       initData: tg ? tg.initData : "",
-      hatX: naturalX,
-      hatY: naturalY,
+      hatX: Math.round(hatPosition.x),
+      hatY: Math.round(hatPosition.y),
     };
 
     try {
@@ -158,6 +194,7 @@
         statusEl.textContent = "";
         captchaScreen.classList.add("hidden");
         ticketScreen.classList.remove("hidden");
+        await deliverTicket();
         return;
       }
 
@@ -181,15 +218,20 @@
       });
       layoutCaptcha();
       randomHatStart();
-      window.addEventListener("resize", layoutCaptcha);
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(layoutCaptcha, 120);
+      });
     } catch (_error) {
       statusEl.textContent = "Не удалось загрузить капчу.";
     }
   }
 
   hat.addEventListener("pointerdown", pointerDown);
-  window.addEventListener("pointermove", pointerMove);
-  window.addEventListener("pointerup", pointerUp);
+  hat.addEventListener("pointermove", pointerMove);
+  hat.addEventListener("pointerup", pointerUp);
+  hat.addEventListener("pointercancel", pointerUp);
+  stage.addEventListener("pointermove", pointerMove);
   verifyBtn.addEventListener("click", verifyCaptcha);
   init();
 })();

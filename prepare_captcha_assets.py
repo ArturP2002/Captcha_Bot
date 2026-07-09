@@ -16,28 +16,28 @@ def is_hat_red(r: int, g: int, b: int) -> bool:
 
 def detect_hat_slot(image_rgb: np.ndarray) -> dict[str, int]:
     h, w = image_rgb.shape[:2]
-    max_y = int(h * 0.22)
-    min_x = int(w * 0.20)
-    max_x = int(w * 0.58)
+    y1, y2 = int(h * 0.03), int(h * 0.18)
+    x1, x2 = int(w * 0.24), int(w * 0.52)
 
-    red_points: list[tuple[int, int]] = []
-    for y in range(0, max_y):
-        for x in range(min_x, max_x):
+    mask = np.zeros((h, w), dtype=np.uint8)
+    for y in range(y1, y2):
+        for x in range(x1, x2):
             r, g, b = image_rgb[y, x]
             if is_hat_red(int(r), int(g), int(b)):
-                red_points.append((x, y))
+                mask[y, x] = 255
 
-    if len(red_points) < 100:
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
         raise RuntimeError("Hat region not found on captcha image")
 
-    xs = [point[0] for point in red_points]
-    ys = [point[1] for point in red_points]
-    pad = 14
-    x1 = max(0, min(xs) - pad)
-    y1 = max(0, min(ys) - pad)
-    x2 = min(w, max(xs) + pad)
-    y2 = min(h, max(ys) + pad)
-    return {"x": x1, "y": y1, "w": x2 - x1, "h": y2 - y1}
+    best = max(contours, key=cv2.contourArea)
+    x, y, bw, bh = cv2.boundingRect(best)
+    pad = 10
+    slot_x = max(0, x - pad)
+    slot_y = max(0, y - pad)
+    slot_w = min(w, x + bw + pad) - slot_x
+    slot_h = min(h, y + bh + pad) - slot_y
+    return {"x": slot_x, "y": slot_y, "w": slot_w, "h": slot_h}
 
 
 def build_inpaint_mask(image_rgb: np.ndarray, slot: dict[str, int]) -> np.ndarray:
@@ -67,7 +67,7 @@ def main() -> None:
     inpainted_bgr = cv2.inpaint(image_bgr, mask, inpaintRadius=10, flags=cv2.INPAINT_TELEA)
     base_rgb = cv2.cvtColor(inpainted_bgr, cv2.COLOR_BGR2RGB)
 
-    hat_piece = image_rgb[slot["y"] : slot["y"] + slot["h"], slot["x"] : slot["x"] + slot["w"]]
+    hat_piece = image_rgb[slot["y"] : slot["y"] + slot["h"], slot["x"] : slot["x"] + slot["w"]].copy()
 
     Image.fromarray(base_rgb).save(OUT_DIR / "Mem_Captcha_base.PNG", quality=95)
     Image.fromarray(hat_piece).save(OUT_DIR / "Mem_Captcha_hat.PNG", quality=95)
@@ -76,7 +76,7 @@ def main() -> None:
         "imageWidth": w,
         "imageHeight": h,
         "hatSlot": slot,
-        "tolerance": 24,
+        "tolerance": 22,
     }
     (OUT_DIR / "captcha_config.json").write_text(
         json.dumps(config, ensure_ascii=False, indent=2),
