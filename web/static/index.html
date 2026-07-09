@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Captcha Ticket Mini App</title>
+  <link rel="stylesheet" href="/static/app/styles.css">
+</head>
+<body>
+  <main class="app">
+    <img class="top-logo" src="/static/media/Logo.PNG" alt="Logo">
+
+    <section id="captcha-screen" class="screen">
+      <h1>Captcha Check</h1>
+      <p class="hint">Move the red hat to the correct place, then press Verify.</p>
+
+      <div id="captcha-stage" class="captcha-stage">
+        <img id="captcha-image" src="/static/media/Mem_Captcha.PNG" alt="Captcha">
+        <div id="hat" class="hat" aria-label="Draggable red hat"></div>
+      </div>
+
+      <button id="verify-btn" class="btn" type="button">Verify</button>
+      <p id="status" class="status"></p>
+    </section>
+
+    <section id="ticket-screen" class="screen hidden">
+      <h1>Your Ticket</h1>
+      <p class="hint">Captcha passed successfully.</p>
+      <img class="ticket-image" src="/static/media/Ticket.PNG" alt="Ticket">
+      <a class="btn" href="/download/ticket" download="Ticket.PNG">Download Ticket</a>
+    </section>
+  </main>
+
+  <script src="/static/app/app.js"></script>
+</body>
+</html>

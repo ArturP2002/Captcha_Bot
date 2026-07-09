@@ -1,0 +1,119 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #000;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.app {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 56px 16px 24px;
+  position: relative;
+}
+
+.top-logo {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 72px;
+  height: auto;
+  z-index: 100;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.hidden {
+  display: none;
+}
+
+h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.hint {
+  margin: 0;
+  opacity: 0.9;
+}
+
+.captcha-stage {
+  position: relative;
+  max-width: 720px;
+  width: 100%;
+  border: 1px solid #2f2f2f;
+  border-radius: 12px;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+
+#captcha-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hat {
+  position: absolute;
+  width: 64px;
+  height: 44px;
+  background: #c20000;
+  border-radius: 80% 80% 35% 35%;
+  border: 2px solid #ff5e5e;
+  cursor: grab;
+  left: 24px;
+  top: 24px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
+}
+
+.hat::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: -16px;
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 22px solid #e30000;
+}
+
+.hat.dragging {
+  cursor: grabbing;
+}
+
+.btn {
+  background: #fff;
+  color: #000;
+  text-decoration: none;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.status {
+  min-height: 20px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.ticket-image {
+  width: 100%;
+  max-width: 540px;
+  border-radius: 12px;
+  border: 1px solid #2f2f2f;
+}
