@@ -3,7 +3,6 @@
   const ticketScreen = document.getElementById("ticket-screen");
   const stage = document.getElementById("captcha-stage");
   const bgImage = document.getElementById("captcha-bg");
-  const hatSlot = document.getElementById("hat-slot");
   const hat = document.getElementById("hat-piece");
   const verifyBtn = document.getElementById("verify-btn");
   const statusEl = document.getElementById("status");
@@ -51,11 +50,6 @@
     displayScale = getScale();
     const slot = captchaConfig.hatSlot;
 
-    hatSlot.style.left = slot.x * displayScale + "px";
-    hatSlot.style.top = slot.y * displayScale + "px";
-    hatSlot.style.width = slot.w * displayScale + "px";
-    hatSlot.style.height = slot.h * displayScale + "px";
-
     hat.style.width = slot.w * displayScale + "px";
     hat.style.height = slot.h * displayScale + "px";
     setHatPositionNatural(hatPosition.x, hatPosition.y);
@@ -71,14 +65,24 @@
     const maxY = Math.max(captchaConfig.imageHeight - slot.h, 0);
 
     const zones = [
-      { x: maxX * 0.05, y: maxY * 0.05 },
-      { x: maxX * 0.7, y: maxY * 0.05 },
-      { x: maxX * 0.05, y: maxY * 0.75 },
-      { x: maxX * 0.65, y: maxY * 0.7 },
-      { x: maxX * 0.35, y: maxY * 0.8 },
+      { x: maxX * 0.04, y: maxY * 0.55 },
+      { x: maxX * 0.72, y: maxY * 0.58 },
+      { x: maxX * 0.05, y: maxY * 0.82 },
+      { x: maxX * 0.68, y: maxY * 0.8 },
+      { x: maxX * 0.38, y: maxY * 0.86 },
     ];
 
-    const zone = zones[Math.floor(Math.random() * zones.length)];
+    let zone = zones[0];
+    for (const candidate of zones.sort(() => Math.random() - 0.5)) {
+      const farEnough =
+        Math.abs(candidate.x - slot.x) > slot.w * 0.45 ||
+        Math.abs(candidate.y - slot.y) > slot.h * 0.45;
+      if (farEnough) {
+        zone = candidate;
+        break;
+      }
+    }
+
     setHatPositionNatural(zone.x, zone.y);
   }
 

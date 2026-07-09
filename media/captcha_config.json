@@ -1,1 +1,11 @@
-{"imageWidth": 3022, "imageHeight": 1680, "hatSlot": {"x": 830, "y": 0, "w": 476, "h": 249}, "tolerance": 28}
+{
+  "imageWidth": 3022,
+  "imageHeight": 1680,
+  "hatSlot": {
+    "x": 754,
+    "y": 0,
+    "w": 506,
+    "h": 382
+  },
+  "tolerance": 24
+}

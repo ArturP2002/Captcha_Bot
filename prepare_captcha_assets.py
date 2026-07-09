@@ -1,8 +1,9 @@
 import json
-from collections import deque
 from pathlib import Path
 
-from PIL import Image, ImageFilter
+import cv2
+import numpy as np
+from PIL import Image
 
 BASE_DIR = Path(__file__).resolve().parent
 SRC = BASE_DIR / "media" / "Mem_Captcha.PNG"
@@ -10,87 +11,72 @@ OUT_DIR = BASE_DIR / "media"
 
 
 def is_hat_red(r: int, g: int, b: int) -> bool:
-    return r > 160 and g < 80 and b < 80 and (r - g) > 80
+    return r > 165 and g < 75 and b < 75 and (r - g) > 90
 
 
-def detect_hat_slot(img: Image.Image) -> dict[str, int]:
-    w, h = img.size
-    pixels = img.load()
-    visited: set[tuple[int, int]] = set()
-    best: tuple[int, int, int, int, int] | None = None
+def detect_hat_slot(image_rgb: np.ndarray) -> dict[str, int]:
+    h, w = image_rgb.shape[:2]
+    max_y = int(h * 0.22)
+    min_x = int(w * 0.20)
+    max_x = int(w * 0.58)
 
-    for sy in range(0, h // 2, 3):
-        for sx in range(0, w, 3):
-            if (sx, sy) in visited or not is_hat_red(*pixels[sx, sy][:3]):
-                continue
-            queue = deque([(sx, sy)])
-            visited.add((sx, sy))
-            xs: list[int] = []
-            ys: list[int] = []
-            while queue:
-                x, y = queue.popleft()
-                xs.append(x)
-                ys.append(y)
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                    nx, ny = x + dx, y + dy
-                    if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in visited:
-                        if is_hat_red(*pixels[nx, ny][:3]):
-                            visited.add((nx, ny))
-                            queue.append((nx, ny))
-            if best is None or len(xs) > best[4]:
-                best = (min(xs), min(ys), max(xs), max(ys), len(xs))
+    red_points: list[tuple[int, int]] = []
+    for y in range(0, max_y):
+        for x in range(min_x, max_x):
+            r, g, b = image_rgb[y, x]
+            if is_hat_red(int(r), int(g), int(b)):
+                red_points.append((x, y))
 
-    if best is None:
+    if len(red_points) < 100:
         raise RuntimeError("Hat region not found on captcha image")
 
-    minx, miny, maxx, maxy, _ = best
-    pad = 10
-    return {
-        "x": max(0, minx - pad),
-        "y": max(0, miny - pad),
-        "w": min(w, maxx + pad) - max(0, minx - pad),
-        "h": min(h, maxy + pad) - max(0, miny - pad),
-    }
+    xs = [point[0] for point in red_points]
+    ys = [point[1] for point in red_points]
+    pad = 14
+    x1 = max(0, min(xs) - pad)
+    y1 = max(0, min(ys) - pad)
+    x2 = min(w, max(xs) + pad)
+    y2 = min(h, max(ys) + pad)
+    return {"x": x1, "y": y1, "w": x2 - x1, "h": y2 - y1}
+
+
+def build_inpaint_mask(image_rgb: np.ndarray, slot: dict[str, int]) -> np.ndarray:
+    h, w = image_rgb.shape[:2]
+    mask = np.zeros((h, w), dtype=np.uint8)
+    x1, y1 = slot["x"], slot["y"]
+    x2, y2 = x1 + slot["w"], y1 + slot["h"]
+
+    for y in range(y1, y2):
+        for x in range(x1, x2):
+            r, g, b = image_rgb[y, x]
+            if is_hat_red(int(r), int(g), int(b)):
+                mask[y, x] = 255
+
+    kernel = np.ones((7, 7), np.uint8)
+    return cv2.dilate(mask, kernel, iterations=2)
 
 
 def main() -> None:
-    img = Image.open(SRC).convert("RGBA")
-    w, h = img.size
-    pixels = img.load()
-    slot = detect_hat_slot(img)
+    pil_image = Image.open(SRC).convert("RGB")
+    image_rgb = np.array(pil_image)
+    h, w = image_rgb.shape[:2]
+    slot = detect_hat_slot(image_rgb)
 
-    hat = Image.new("RGBA", (slot["w"], slot["h"]), (0, 0, 0, 0))
-    hat_pixels = hat.load()
-    for dy in range(slot["h"]):
-        for dx in range(slot["w"]):
-            sx, sy = slot["x"] + dx, slot["y"] + dy
-            r, g, b, a = pixels[sx, sy]
-            if is_hat_red(r, g, b):
-                hat_pixels[dx, dy] = (r, g, b, a)
-            else:
-                hat_pixels[dx, dy] = (r, g, b, 0)
+    mask = build_inpaint_mask(image_rgb, slot)
+    image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+    inpainted_bgr = cv2.inpaint(image_bgr, mask, inpaintRadius=10, flags=cv2.INPAINT_TELEA)
+    base_rgb = cv2.cvtColor(inpainted_bgr, cv2.COLOR_BGR2RGB)
 
-    base = img.copy()
-    base_pixels = base.load()
-    for dy in range(slot["h"]):
-        for dx in range(slot["w"]):
-            sx, sy = slot["x"] + dx, slot["y"] + dy
-            if is_hat_red(*pixels[sx, sy][:3]):
-                sample_y = min(h - 1, sy + 40)
-                base_pixels[sx, sy] = pixels[sx, sample_y]
+    hat_piece = image_rgb[slot["y"] : slot["y"] + slot["h"], slot["x"] : slot["x"] + slot["w"]]
 
-    patch = base.crop((slot["x"], slot["y"], slot["x"] + slot["w"], slot["y"] + slot["h"]))
-    patch = patch.filter(ImageFilter.GaussianBlur(radius=6))
-    base.paste(patch, (slot["x"], slot["y"]))
-
-    hat.save(OUT_DIR / "Mem_Captcha_hat.PNG")
-    base.save(OUT_DIR / "Mem_Captcha_base.PNG")
+    Image.fromarray(base_rgb).save(OUT_DIR / "Mem_Captcha_base.PNG", quality=95)
+    Image.fromarray(hat_piece).save(OUT_DIR / "Mem_Captcha_hat.PNG", quality=95)
 
     config = {
         "imageWidth": w,
         "imageHeight": h,
         "hatSlot": slot,
-        "tolerance": 28,
+        "tolerance": 24,
     }
     (OUT_DIR / "captcha_config.json").write_text(
         json.dumps(config, ensure_ascii=False, indent=2),

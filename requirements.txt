@@ -1,2 +1,6 @@
 aiogram
 aiohttp
+
+# For regenerating captcha assets locally:
+# pillow
+# opencv-python-headless
