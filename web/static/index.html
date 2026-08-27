@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#000000">
   <title>Капча и промокод</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/app/styles.css?v=3">
+  <link rel="stylesheet" href="/static/app/styles.css?v=4">
 </head>
 <body>
   <main class="app">
@@ -32,10 +32,25 @@
     <section id="promo-screen" class="screen hidden">
       <h1>Твой промокод</h1>
       <p class="hint">Скопируй и используй</p>
-      <p class="promo-code">mongetak</p>
+      <div class="promo-card">
+        <p class="promo-code" id="promo-code">mongetak</p>
+        <button
+          id="promo-copy-btn"
+          class="promo-copy-btn"
+          type="button"
+          aria-label="Скопировать промокод"
+          title="Скопировать"
+        >
+          <svg class="promo-copy-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"></rect>
+            <path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="1.8"></path>
+          </svg>
+        </button>
+      </div>
+      <p id="promo-copy-status" class="promo-copy-status" aria-live="polite"></p>
     </section>
   </main>
 
-  <script src="/static/app/app.js?v=6"></script>
+  <script src="/static/app/app.js?v=7"></script>
 </body>
 </html>

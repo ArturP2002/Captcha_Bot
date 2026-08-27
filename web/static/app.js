@@ -6,6 +6,9 @@
   const hat = document.getElementById("hat-piece");
   const verifyBtn = document.getElementById("verify-btn");
   const statusEl = document.getElementById("status");
+  const promoCodeEl = document.getElementById("promo-code");
+  const promoCopyBtn = document.getElementById("promo-copy-btn");
+  const promoCopyStatusEl = document.getElementById("promo-copy-status");
 
   const tg = window.Telegram ? window.Telegram.WebApp : null;
   if (tg) {
@@ -270,6 +273,42 @@
     promoScreen.classList.remove("hidden");
   }
 
+  async function copyPromoCode() {
+    const promoCode = promoCodeEl.textContent.trim();
+    if (!promoCode) {
+      return;
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(promoCode);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = promoCode;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+
+      promoCopyBtn.classList.add("copied");
+      promoCopyStatusEl.textContent = "Промокод скопирован";
+      if (tg && typeof tg.HapticFeedback?.notificationOccurred === "function") {
+        tg.HapticFeedback.notificationOccurred("success");
+      }
+
+      setTimeout(() => {
+        promoCopyBtn.classList.remove("copied");
+        promoCopyStatusEl.textContent = "";
+      }, 2000);
+    } catch (_error) {
+      promoCopyStatusEl.textContent = "Не удалось скопировать";
+    }
+  }
+
   async function verifyCaptcha() {
     statusEl.textContent = messages.verifying;
     statusEl.className = "status";
@@ -336,5 +375,6 @@
   hat.addEventListener("pointercancel", pointerUp);
   stageInner.addEventListener("pointermove", pointerMove);
   verifyBtn.addEventListener("click", verifyCaptcha);
+  promoCopyBtn.addEventListener("click", copyPromoCode);
   init();
 })();

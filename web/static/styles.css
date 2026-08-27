@@ -182,13 +182,19 @@ h1 {
   color: #8dffb1;
 }
 
-.promo-code {
+.promo-card {
+  position: relative;
   margin: var(--space-sm) auto 0;
   width: min(100%, 420px);
   padding: clamp(16px, 4vw, 24px) clamp(20px, 5vw, 32px);
+  padding-bottom: clamp(44px, 10vw, 52px);
   border-radius: 14px;
   border: 1px solid #333;
   background: #111;
+}
+
+.promo-code {
+  margin: 0;
   font-size: clamp(28px, 8vw, 40px);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -196,6 +202,53 @@ h1 {
   text-transform: lowercase;
   color: #fff;
   user-select: all;
+}
+
+.promo-copy-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.promo-copy-btn:hover {
+  background: #242424;
+  border-color: #555;
+}
+
+.promo-copy-btn:active {
+  transform: scale(0.96);
+}
+
+.promo-copy-btn.copied {
+  background: #16351f;
+  border-color: #2f8f4e;
+  color: #8dffb1;
+}
+
+.promo-copy-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.promo-copy-status {
+  min-height: 18px;
+  margin: 8px auto 0;
+  width: min(100%, 420px);
+  font-size: var(--font-small);
+  color: #8dffb1;
+  text-align: center;
 }
 
 @media (min-width: 768px) {
