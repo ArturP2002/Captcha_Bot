@@ -80,6 +80,61 @@
     }
   }
 
+  function hatOverlapsSlot(x, y, slot, margin) {
+    return !(
+      x + slot.w + margin < slot.x ||
+      slot.x + slot.w + margin < x ||
+      y + slot.h + margin < slot.y ||
+      slot.y + slot.h + margin < y
+    );
+  }
+
+  function getRandomCornerPosition() {
+    const slot = captchaConfig.hatSlot;
+    const maxX = Math.max(captchaConfig.imageWidth - slot.w, 0);
+    const maxY = Math.max(captchaConfig.imageHeight - slot.h, 0);
+    const pad = 12;
+
+    const corners = [
+      { x: pad, y: pad },
+      { x: maxX - pad, y: pad },
+      { x: pad, y: maxY - pad },
+      { x: maxX - pad, y: maxY - pad },
+    ];
+
+    const validCorners = corners
+      .filter((corner) => !hatOverlapsSlot(corner.x, corner.y, slot, 16))
+      .sort(() => Math.random() - 0.5);
+
+    if (validCorners.length > 0) {
+      return validCorners[0];
+    }
+
+    const slotCenterX = slot.x + slot.w / 2;
+    const slotCenterY = slot.y + slot.h / 2;
+    return corners.reduce((best, corner) => {
+      const centerX = corner.x + slot.w / 2;
+      const centerY = corner.y + slot.h / 2;
+      const bestCenterX = best.x + slot.w / 2;
+      const bestCenterY = best.y + slot.h / 2;
+      const distance =
+        (centerX - slotCenterX) ** 2 + (centerY - slotCenterY) ** 2;
+      const bestDistance =
+        (bestCenterX - slotCenterX) ** 2 + (bestCenterY - slotCenterY) ** 2;
+      return distance > bestDistance ? corner : best;
+    });
+  }
+
+  function placeHatInRandomCorner() {
+    const corner = getRandomCornerPosition();
+    const slot = captchaConfig.hatSlot;
+    const maxX = Math.max(captchaConfig.imageWidth - slot.w, 0);
+    const maxY = Math.max(captchaConfig.imageHeight - slot.h, 0);
+
+    hatPosition.x = clamp(corner.x, 0, maxX);
+    hatPosition.y = clamp(corner.y, 0, maxY);
+  }
+
   function layoutCaptcha() {
     if (!captchaConfig) {
       return;
@@ -90,38 +145,13 @@
 
     hat.style.width = slot.w * displayScale + "px";
     hat.style.height = slot.h * displayScale + "px";
+
+    if (!hasInitialPosition) {
+      placeHatInRandomCorner();
+      hasInitialPosition = true;
+    }
+
     applyHatVisualPosition(false);
-  }
-
-  function randomHatStart() {
-    if (!captchaConfig || hasInitialPosition) {
-      return;
-    }
-
-    const slot = captchaConfig.hatSlot;
-    const maxX = Math.max(captchaConfig.imageWidth - slot.w, 0);
-    const maxY = Math.max(captchaConfig.imageHeight - slot.h, 0);
-
-    const zones = [
-      { x: 24, y: maxY * 0.62 },
-      { x: maxX * 0.68, y: maxY * 0.66 },
-      { x: 24, y: maxY * 0.86 },
-      { x: maxX * 0.62, y: maxY * 0.84 },
-    ];
-
-    let zone = zones[0];
-    for (const candidate of zones.sort(() => Math.random() - 0.5)) {
-      const farEnough =
-        Math.abs(candidate.x - slot.x) > slot.w * 0.5 ||
-        Math.abs(candidate.y - slot.y) > slot.h * 0.5;
-      if (farEnough) {
-        zone = candidate;
-        break;
-      }
-    }
-
-    setHatPositionNatural(zone.x, zone.y, false);
-    hasInitialPosition = true;
   }
 
   function setHatPositionNatural(naturalX, naturalY, animate) {
@@ -276,7 +306,6 @@
         hat.onload = done;
       });
       layoutCaptcha();
-      randomHatStart();
       bindResizeHandlers();
     } catch (_error) {
       statusEl.textContent = "Не удалось загрузить капчу.";
