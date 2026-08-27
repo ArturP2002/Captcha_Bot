@@ -2,10 +2,10 @@
   "imageWidth": 480,
   "imageHeight": 480,
   "hatSlot": {
-    "x": 80,
-    "y": 197,
+    "x": 154,
+    "y": 69,
     "w": 122,
     "h": 122
   },
-  "tolerance": 42
+  "tolerance": 48
 }

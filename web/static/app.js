@@ -61,15 +61,32 @@
     updateProximityFeedback();
   }
 
+  function getHatCenter() {
+    const slot = captchaConfig.hatSlot;
+    return {
+      x: hatPosition.x + slot.w / 2,
+      y: hatPosition.y + slot.h / 2,
+    };
+  }
+
+  function getSlotCenter() {
+    const slot = captchaConfig.hatSlot;
+    return {
+      x: slot.x + slot.w / 2,
+      y: slot.y + slot.h / 2,
+    };
+  }
+
   function updateProximityFeedback() {
     if (!captchaConfig) {
       return;
     }
-    const slot = captchaConfig.hatSlot;
-    const tolerance = captchaConfig.tolerance || 42;
-    const deltaX = Math.abs(hatPosition.x - slot.x);
-    const deltaY = Math.abs(hatPosition.y - slot.y);
-    const isNear = deltaX <= tolerance * 1.8 && deltaY <= tolerance * 1.8;
+    const tolerance = captchaConfig.tolerance || 48;
+    const hatCenter = getHatCenter();
+    const slotCenter = getSlotCenter();
+    const deltaX = Math.abs(hatCenter.x - slotCenter.x);
+    const deltaY = Math.abs(hatCenter.y - slotCenter.y);
+    const isNear = deltaX <= tolerance * 1.2 && deltaY <= tolerance * 1.2;
 
     if (isNear && !dragging && !statusEl.classList.contains("error")) {
       statusEl.textContent = messages.near;

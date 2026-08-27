@@ -177,9 +177,15 @@ async def verify_captcha(request: web.Request) -> web.Response:
 
     config = load_captcha_config()
     slot = config["hatSlot"]
-    tolerance = int(config.get("tolerance", 42))
-    delta_x = abs(float(hat_x) - slot["x"])
-    delta_y = abs(float(hat_y) - slot["y"])
+    tolerance = int(config.get("tolerance", 48))
+    hat_w = float(slot["w"])
+    hat_h = float(slot["h"])
+    hat_center_x = float(hat_x) + hat_w / 2
+    hat_center_y = float(hat_y) + hat_h / 2
+    slot_center_x = float(slot["x"]) + hat_w / 2
+    slot_center_y = float(slot["y"]) + hat_h / 2
+    delta_x = abs(hat_center_x - slot_center_x)
+    delta_y = abs(hat_center_y - slot_center_y)
     is_valid = delta_x <= tolerance and delta_y <= tolerance
 
     register_attempt(user_id)
