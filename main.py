@@ -23,7 +23,7 @@ APP_HOST = "0.0.0.0"
 APP_PORT = 8080
 APP_DOMAIN = "https://dktk.fun"
 MINI_APP_URL = f"{APP_DOMAIN}/miniapp"
-APP_ASSET_VERSION = "2"
+APP_ASSET_VERSION = "8"
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate",
     "Pragma": "no-cache",
@@ -198,7 +198,7 @@ async def verify_captcha(request: web.Request) -> web.Response:
 @web.middleware
 async def no_cache_middleware(request: web.Request, handler):
     response = await handler(request)
-    if request.path.startswith(("/miniapp", "/static/app/")):
+    if request.path.startswith(("/miniapp", "/static/app/", "/static/media/", "/api/captcha/")):
         response.headers.update(NO_CACHE_HEADERS)
     return response
 
