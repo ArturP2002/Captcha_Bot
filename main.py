@@ -128,7 +128,7 @@ async def start_handler(message: Message) -> None:
     )
     await message.answer(
         "<b>🎟 Добро пожаловать!</b>\n\n"
-        "Пройди капчу в Mini App и получи билет.\n"
+        "Пройди капчу в Mini App и получи промокод.\n"
         "Нажми кнопку ниже, чтобы начать 👇",
         reply_markup=keyboard,
         parse_mode="HTML",
@@ -138,8 +138,8 @@ async def start_handler(message: Message) -> None:
 async def post_template_handler(message: Message) -> None:
     bot_username = (await message.bot.get_me()).username
     text = (
-        "<b>🎫 Забери свой билет</b>\n\n"
-        "Пройди капчу в Mini App и сделай скриншот билета.\n\n"
+        "<b>🎫 Забери свой промокод</b>\n\n"
+        "Пройди капчу в Mini App и получи промокод.\n\n"
         f"👉 <a href=\"https://t.me/{bot_username}?startapp=from_channel\">Открыть Mini App</a>"
     )
     await message.answer(text, parse_mode="HTML", disable_web_page_preview=True)

@@ -1,6 +1,6 @@
 (function () {
   const captchaScreen = document.getElementById("captcha-screen");
-  const ticketScreen = document.getElementById("ticket-screen");
+  const promoScreen = document.getElementById("promo-screen");
   const stageInner = document.querySelector(".captcha-stage-inner");
   const bgImage = document.getElementById("captcha-bg");
   const hat = document.getElementById("hat-piece");
@@ -218,9 +218,9 @@
     }
   }
 
-  function showTicketScreen() {
+  function showPromoScreen() {
     captchaScreen.classList.add("hidden");
-    ticketScreen.classList.remove("hidden");
+    promoScreen.classList.remove("hidden");
   }
 
   async function verifyCaptcha() {
@@ -246,7 +246,7 @@
         statusEl.textContent = "Верно!";
         statusEl.className = "status ok";
         await snapToSlot();
-        showTicketScreen();
+        showPromoScreen();
         return;
       }
 

@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#000000">
-  <title>Капча и билет</title>
+  <title>Капча и промокод</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/static/app/styles.css?v=2">
+  <link rel="stylesheet" href="/static/app/styles.css?v=3">
 </head>
 <body>
   <main class="app">
@@ -15,8 +15,8 @@
     </header>
 
     <section id="captcha-screen" class="screen">
-      <h1>Только живые</h1>
-      <p class="hint">Пройди капчу - получи билет. Увидимся в левеле!</p>
+      <h1>Так так так</h1>
+      <p class="hint">Пройди капчу - получи промокод. До встречи!</p>
 
       <div id="captcha-stage" class="captcha-stage">
         <div class="captcha-stage-inner">
@@ -29,13 +29,13 @@
       <p id="status" class="status"></p>
     </section>
 
-    <section id="ticket-screen" class="screen hidden">
-      <h1>Твой билет</h1>
-      <p class="hint">Сделай скриншот</p>
-      <img class="ticket-image" src="/static/media/Ticket.PNG" alt="Билет">
+    <section id="promo-screen" class="screen hidden">
+      <h1>Твой промокод</h1>
+      <p class="hint">Скопируй и используй</p>
+      <p class="promo-code">mongetak</p>
     </section>
   </main>
 
-  <script src="/static/app/app.js?v=2"></script>
+  <script src="/static/app/app.js?v=3"></script>
 </body>
 </html>

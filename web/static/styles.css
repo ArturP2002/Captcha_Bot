@@ -182,13 +182,20 @@ h1 {
   color: #8dffb1;
 }
 
-.ticket-image {
-  display: block;
-  width: 100%;
-  max-width: min(540px, 100%);
-  margin: 0 auto;
+.promo-code {
+  margin: var(--space-sm) auto 0;
+  width: min(100%, 420px);
+  padding: clamp(16px, 4vw, 24px) clamp(20px, 5vw, 32px);
   border-radius: 14px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #333;
+  background: #111;
+  font-size: clamp(28px, 8vw, 40px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: lowercase;
+  color: #fff;
+  user-select: all;
 }
 
 @media (min-width: 768px) {
